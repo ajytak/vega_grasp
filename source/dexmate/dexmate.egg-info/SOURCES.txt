@@ -1,0 +1,10 @@
+pyproject.toml
+setup.py
+dexmate/__init__.py
+dexmate/ui_extension_example.py
+dexmate.egg-info/PKG-INFO
+dexmate.egg-info/SOURCES.txt
+dexmate.egg-info/dependency_links.txt
+dexmate.egg-info/not-zip-safe
+dexmate.egg-info/requires.txt
+dexmate.egg-info/top_level.txt
