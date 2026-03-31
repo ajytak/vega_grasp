@@ -1,135 +1,95 @@
-# Template for Isaac Lab Projects
+# Vega Right-Arm Grasping with Isaac Lab
+
+This project trains a single reinforcement learning policy for robotic grasping of multiple YCB objects using the Vega upper-body robot in Isaac Lab. The task focuses on the right arm and gripper under joint position control, with randomized object placement and optional table-height variation for robustness.
 
 ## Overview
 
-This project/repository serves as a template for building projects or extensions based on Isaac Lab.
-It allows you to develop in an isolated environment, outside of the core Isaac Lab repository.
+The environment uses the Vega right arm and gripper to grasp tabletop objects from the YCB dataset. The policy is state-based: it observes robot joint states, previous action, and object pose relative to the gripper frame. The task is structured as a staged grasping problem: approach a pre-grasp waypoint, align gripper orientation, move to a near-object waypoint, close the gripper, and lift the object.
 
-**Key Features:**
+## Dependencies
 
-- `Isolation` Work outside the core Isaac Lab repository, ensuring that your development efforts remain self-contained.
-- `Flexibility` This template is set up to allow your code to be run as an extension in Omniverse.
+- Python 3.10+
+- NVIDIA GPU with CUDA
+- Isaac Sim / Isaac Lab
+- PyTorch
+- Vega URDF assets
+- YCB object assets from Isaac Sim / Isaac Nucleus
 
-**Keywords:** extension, template, isaaclab
+## Setup
 
-## Installation
+1. Install Isaac Sim and Isaac Lab.
+2. Clone this repository into your Isaac Lab workspace.
+3. Ensure the Vega URDF is available at the path used in the config:
+   - `dexmate/assets/robots/humanoid/vega_1u/vega_1u_gripper.urdf`
+4. Ensure YCB assets are available through Isaac Nucleus.
+5. Set up the Isaac Lab Python environment.
+6. Register the environment/task if required.
 
-- Install Isaac Lab by following the [installation guide](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/index.html).
-  We recommend using the conda or uv installation as it simplifies calling Python scripts from the terminal.
+## Usage
 
-- Clone or copy this project/repository separately from the Isaac Lab installation (i.e. outside the `IsaacLab` directory):
+### Train
+Launch training with the configured environment and PPO runner from your Isaac Lab setup.
 
-- Using a python interpreter that has Isaac Lab installed, install the library in editable mode using:
+Example workflow:
+1. Select the environment config `DexmateEnvCfg`
+2. Run the Isaac Lab training entry point with this task
+3. Train across randomized resets and multiple object instances
 
-    ```bash
-    # use 'PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-    python -m pip install -e source/dexmate
+### Debug / Visualize
+Use `DexmateDebugEnv` to visualize:
+- gripper frame
+- object frame
+- target waypoint frame
 
-- Verify that the extension is correctly installed by:
+This is useful for checking reward shaping and waypoint placement.
 
-    - Listing the available tasks:
+<!-- ### Evaluate
+Run the trained policy in inference mode across:
+- different YCB objects
+- randomized object poses
+- randomized table heights if enabled
 
-        Note: It the task name changes, it may be necessary to update the search pattern `"Template-"`
-        (in the `scripts/list_envs.py` file) so that it can be listed.
+Record screen captures for the demo video. -->
 
-        ```bash
-        # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-        python scripts/list_envs.py
-        ```
+## Technical Approach
 
-    - Running a task:
+- **Simulator:** Isaac Lab
+- **Robot:** Vega upper body, right arm and gripper only
+- **Control:** Joint position control through Isaac Lab action terms
+- **Policy type:** State-based RL policy
+- **Objects:** Single shared task setup across ~5 YCB objects
+- **Randomization:** Object pose randomization at reset; table-height randomization supported
+- **Reward design:** Multi-stage dense shaping:
+  - reach pre-grasp waypoint
+  - align gripper orientation with object
+  - approach near-object waypoint
+  - open/close gripper at the correct phase
+  - lift object above table
+  - penalize unstable motion and excessive velocity
 
-        ```bash
-        # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-        python scripts/<RL_LIBRARY>/train.py --task=<TASK_NAME>
-        ```
+## Design Decisions
 
-    - Running a task with dummy agents:
+- A state-based policy was used instead of vision to keep the task tractable and focus on grasp learning.
+- The grasp behavior is decomposed into phases using waypoint-based reward shaping to improve exploration.
+- Observations are expressed in the gripper frame where useful, making the policy more invariant to world placement.
+- A single environment structure is shared across multiple YCB objects to support one policy over varied geometries.
 
-        These include dummy agents that output zero or random agents. They are useful to ensure that the environments are configured correctly.
+## Repository Contents
 
-        - Zero-action agent
+- environment/task config
+- reward and observation functions
+- asset definitions for Vega and YCB objects
+- debug environment for frame visualization
 
-            ```bash
-            # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-            python scripts/zero_agent.py --task=<TASK_NAME>
-            ```
-        - Random-action agent
+## Deliverables
 
-            ```bash
-            # use 'FULL_PATH_TO_isaaclab.sh|bat -p' instead of 'python' if Isaac Lab is not installed in Python venv or conda
-            python scripts/random_agent.py --task=<TASK_NAME>
-            ```
+This repository contains:
+- source code for training and evaluation
+- this README
+- demo video showing grasping under randomized conditions
 
-### Set up IDE (Optional)
+## Notes
 
-To setup the IDE, please follow these instructions:
-
-- Run VSCode Tasks, by pressing `Ctrl+Shift+P`, selecting `Tasks: Run Task` and running the `setup_python_env` in the drop down menu.
-  When running this task, you will be prompted to add the absolute path to your Isaac Sim installation.
-
-If everything executes correctly, it should create a file .python.env in the `.vscode` directory.
-The file contains the python paths to all the extensions provided by Isaac Sim and Omniverse.
-This helps in indexing all the python modules for intelligent suggestions while writing code.
-
-### Setup as Omniverse Extension (Optional)
-
-We provide an example UI extension that will load upon enabling your extension defined in `source/dexmate/dexmate/ui_extension_example.py`.
-
-To enable your extension, follow these steps:
-
-1. **Add the search path of this project/repository** to the extension manager:
-    - Navigate to the extension manager using `Window` -> `Extensions`.
-    - Click on the **Hamburger Icon**, then go to `Settings`.
-    - In the `Extension Search Paths`, enter the absolute path to the `source` directory of this project/repository.
-    - If not already present, in the `Extension Search Paths`, enter the path that leads to Isaac Lab's extension directory directory (`IsaacLab/source`)
-    - Click on the **Hamburger Icon**, then click `Refresh`.
-
-2. **Search and enable your extension**:
-    - Find your extension under the `Third Party` category.
-    - Toggle it to enable your extension.
-
-## Code formatting
-
-We have a pre-commit template to automatically format your code.
-To install pre-commit:
-
-```bash
-pip install pre-commit
-```
-
-Then you can run pre-commit with:
-
-```bash
-pre-commit run --all-files
-```
-
-## Troubleshooting
-
-### Pylance Missing Indexing of Extensions
-
-In some VsCode versions, the indexing of part of the extensions is missing.
-In this case, add the path to your extension in `.vscode/settings.json` under the key `"python.analysis.extraPaths"`.
-
-```json
-{
-    "python.analysis.extraPaths": [
-        "<path-to-ext-repo>/source/dexmate"
-    ]
-}
-```
-
-### Pylance Crash
-
-If you encounter a crash in `pylance`, it is probable that too many files are indexed and you run out of memory.
-A possible solution is to exclude some of omniverse packages that are not used in your project.
-To do so, modify `.vscode/settings.json` and comment out packages under the key `"python.analysis.extraPaths"`
-Some examples of packages that can likely be excluded are:
-
-```json
-"<path-to-isaac-sim>/extscache/omni.anim.*"         // Animation packages
-"<path-to-isaac-sim>/extscache/omni.kit.*"          // Kit UI tools
-"<path-to-isaac-sim>/extscache/omni.graph.*"        // Graph UI tools
-"<path-to-isaac-sim>/extscache/omni.services.*"     // Services tools
-...
-```
+- The current setup is right-arm only.
+- Vision is not required for this implementation.
+- Table-height randomization can be enabled directly from the event configuration (Table randomization only works with 1 env).
