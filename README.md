@@ -30,6 +30,12 @@ The environment uses the Vega right arm and gripper to grasp tabletop objects fr
 ### Train
 Launch training with the configured environment and PPO runner from your Isaac Lab setup.
 
+Run training with:
+
+```bash
+CUDA_VISIBLE_DEVICES=1 python scripts/skrl/train.py --task Isaac-Dexmate-v0 --headless --num_envs 512 --video --video_interval 2500
+```
+
 Example workflow:
 1. Select the environment config `DexmateEnvCfg`
 2. Run the Isaac Lab training entry point with this task
